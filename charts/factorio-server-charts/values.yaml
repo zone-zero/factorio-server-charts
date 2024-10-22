@@ -65,6 +65,7 @@ service:
   #   port: 34197
   ## LoadBalancer setup
   # type: LoadBalancer
+  # externalTrafficPolicy: Cluster
   annotations: {}
 
 
@@ -153,6 +154,17 @@ factorioServer:
   update_mods_on_start: false
   # lets the game know if you want to load the latest save
   load_latest_save: true
+
+import_save:
+  # enable save importer
+  enabled: true
+  # url to download save from (http or https only).
+  # if no url is specified, saves can still be manually imported by placing the file in "/factorio/save-importer/import"
+  source_url: ""
+  # reimport from the source_url if the checksum of the file changes
+  reimport_on_change: false
+  # reimport from the source_url AND OVERWRITE PREVIOUS SAVE every time pod is initialized. good for demos or testing
+  reimport_every_time: false
 
 ## @param account.accountSecret Existing secret containing a valid factorio.com username and either a password or a token (or both)
 ## @param account.username Factorio.com username, ignored if `account.accountSecret` is set
@@ -268,6 +280,7 @@ server_settings:
 
 ## @param rcon.external Enable RCON external access (deploy RCON service)
 ## @param rcon.type RCON service type
+## @param rcon.serviceAnnotations RCON service annotations
 ## @param rcon.passwordSecret Existing secret containing a `password` data field
 ## @param rcon.password Password for RCON, ignored if `rcon.passwordSecret` is set
 ## @param rcon.port RCON service external port
@@ -275,7 +288,7 @@ server_settings:
 rcon:
   external: true
   type: LoadBalancer
-
+  serviceAnnotations: {}
   # Existing secret containing a `password` data field
   passwordSecret: ""
 

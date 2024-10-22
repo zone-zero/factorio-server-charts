@@ -106,6 +106,32 @@ serverPassword:
   # Existing Secret containing a `game_password` data entry
   passwordSecret: ''
 ```
+## Importing a save file
+
+> :warning: Importing a save file will **OVERWRITE THE SERVER SAVEFILE** with the name specified in `factorioServer.save_name`. Import with caution!
+
+### Importing by URL
+
+To import your save file from a URL, set `import_save.source_url` to a direct-download link for your savegame. By default, the file will be downloaded and imported only once.
+
+If, on pod intialization, you wish to re-import the file every time the contents of the savegame change, set `import_save.reimport_on_change` to `true`. 
+:warning: If the savegame at the source url changes, this will overwrite the server save with that file. Use with caution!
+
+If you wish to reimport the save file every time the pod reinitializes, regardless of changes, set `import_save.reimport_every_time` to `true`. This could be useful for demos or testing.
+:warning: This will overwrite the server savegame **every time the pod reinitializes**. Use with caution!
+
+### Manual Import
+
+To import an existing save file, start/restart the pod at least once. This will create the import folder structure.
+
+Now, copy the savegame you wish to import to the `/factorio/save-importer/import/<existing_savegame_name>.zip` on the running pod using whatever mechanism you prefer. To do this with kubectl:
+
+```bash
+kubectl cp ./my_existing_savegame.zip <namespace>/<pod_name>:/factorio/save-importer/import
+```
+
+Restart the pod again to import your save file.
+
 
 ## Installing mods
 
@@ -192,13 +218,14 @@ If you do run into any issues with mods, I will try to work with you on finding 
 
 ### Service Parameters
 
-| Name                  | Description                                                                                                                | Value      |
-|-----------------------|----------------------------------------------------------------------------------------------------------------------------|------------|
-| `service.type`        | Factorio service type                                                                                                      | `NodePort` |
-| `service.port`        | Factorio service port                                                                                                      | `31497`    |
-| `service.externalIPs` | If you are able to map an external IP, set it here                                                                         |            |
-| `service.nodePort`    | If you use "type: NodePort" set the port to a value you like in the range of 30000-32767. Leave it blank for a random port |            |
-| `service.annotations` | Additional custom annotations for Factorio service                                                                         | `{}`       |
+| Name                            | Description                                                                                                                | Value      |
+|---------------------------------|----------------------------------------------------------------------------------------------------------------------------|------------|
+| `service.type`                  | Factorio service type                                                                                                      | `NodePort` |
+| `service.port`                  | Factorio service port                                                                                                      | `31497`    |
+| `service.externalIPs`           | If you are able to map an external IP, set it here                                                                         |            |
+| `service.nodePort`              | If you use "type: NodePort" set the port to a value you like in the range of 30000-32767. Leave it blank for a random port |            |
+| `service.annotations`           | Additional custom annotations for Factorio service                                                                         | `{}`       |
+| `service.externalTrafficPolicy` | Traffic policy, "Cluster" or "Local", used for the service                                                                 | `Cluster`  |
 
 ### Persistence Configuration
 
@@ -221,6 +248,10 @@ If you do run into any issues with mods, I will try to work with you on finding 
 | `factorioServer.generate_new_save`                             | Generate a new save if `save_name` is not found                                                                                          | `true`                           |
 | `factorioServer.update_mods_on_start`                          | Update mods on server start                                                                                                              | `false`                          |
 | `factorioServer.load_latest_save`                              | Lets the game know if you want to load the latest save                                                                                   | `true`                           |
+| `import_save.enabled`                                          | Enable save importer. Importer runs at every pod initialization. **:warning: Overwrites existing save if successful**                    | `true`                           |
+| `import_save.source_url`                                       | Full URL (including http(s)://). If left blank, saves can still be imported by placing in '/factorio/save-importer/import'               | `""`                             |
+| `import_save.reimport_on_change`                               | Reimport save file from source_url when checksum changes. File will be downloaded at every pod initialization.                           | `false`                          |
+| `import_save.reimport_every_time`                              | Reimport save file from source_url at every pod intialization. Useful for resetting demos or testing.                                    | `false`                          |
 | `account.accountSecret`                                        | Existing secret containing a valid factorio.com username and either a password or a token (or both)                                      | `""`                             |
 | `account.username`                                             | Factorio.com username, ignored if `account.accountSecret` is set                                                                         | `""`                             |
 | `account.password`                                             | Factorio.com password, ignored if `account.accountSecret` is set                                                                         | `""`                             |
@@ -252,6 +283,7 @@ If you do run into any issues with mods, I will try to work with you on finding 
 | `server_settings.maximum_segment_size_peer_count`              | Minimum network messages segment count                                                                                                   | `10`                             |
 | `rcon.external`                                                | Enable RCON external access (deploy RCON service)                                                                                        | `true`                           |
 | `rcon.type`                                                    | RCON service type                                                                                                                        | `LoadBalancer`                   |
+| `rcon.serviceAnnotations`                                      | RCON service annotations                                                                                                                        | `{}`                   |
 | `rcon.passwordSecret`                                          | Existing secret containing a `password` data field                                                                                       | `""`                             |
 | `rcon.password`                                                | Password for RCON, ignored if `rcon.passwordSecret` is set                                                                               | `CHANGEMECHANGEME`               |
 | `rcon.port`                                                    | RCON service external port                                                                                                               | `30100`                          |
