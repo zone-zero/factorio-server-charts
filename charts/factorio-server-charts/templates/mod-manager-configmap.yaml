@@ -1,0 +1,251 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "factorio-server-charts.fullname" . }}-mod-manager-configmap
+  labels:
+    app: {{ template "factorio-server-charts.fullname" . }}
+    chart: {{ template "factorio-server-charts.fullname" . }}
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+data:
+  # credit to the factoriotools/factorio-docker team, most of this logic came from them
+  # https://github.com/factoriotools/factorio-docker/blob/master/docker/files/update-mods.sh
+
+  mod-manager.sh: |
+    #!/bin/bash
+    modDir=/factorio/mods
+    modFile=mod-list.json
+    modList='{
+      "mods": []
+    }'
+    MOD_BASE_URL="https://mods.factorio.com"
+    CORE_MODS=("base" "elevated-rails" "quality" "space-age") # core mods are enabled by default
+
+    allDLSuccess=true
+    declare -a downloadFileNames
+
+
+    declare -a officialMods
+    officialMods=(
+      {{- range .Values.mods.portal }}
+      {{ .name | quote}}
+      {{- end }}
+    )
+
+    declare -A unofficialMods
+    {{- range .Values.mods.unofficial }}
+    unofficialMods[{{ .name | quote}}]={{ .url | quote}}
+    {{- end }}
+
+    declare -A modStatus
+      #core mods enabled by default
+      for coremod in ${CORE_MODS[*]}; do
+        modStatus[$coremod]="true"
+      done
+      {{- range .Values.mods.core }}
+      modStatus[{{.name | quote}}]={{.enabled | default "true" | quote  }} 
+      {{- end }}
+      {{- range .Values.mods.portal }}
+      modStatus[{{.name | quote}}]={{.enabled | default "true" | quote }} 
+      {{- end }}
+      {{- range .Values.mods.unofficial }}
+      modStatus[$(echo {{.name | quote}} | cut -f1 -d"_")]={{.enabled | default "true" | quote }} 
+      {{- end }}
+
+    function print_step()
+    {
+      echo "$1"
+    }
+    function print_success()
+    {
+      echo "$1"
+    }
+    function print_failure()
+    {
+      echo "$1"
+    }
+    function downloadUnofficial() {
+      local filename=$1
+      local url=$2
+
+      local umodName=$(echo "$filename" |  cut -f1 -d"_")
+      print_step "  Updating mod $umodName"
+      if downloadMod "$filename" $url; then
+        setModStatus "$umodName" ${modStatus[$umodName]}
+      fi
+    }
+
+    function writeModList(){
+      echo "$modList" > $modDir/$modFile
+    }
+
+    function setModStatus(){
+      local modname=$1
+      local status=$2
+
+      print_step "  setting status of $modname to $status..."
+      modList=$(echo "$modList" | jq --arg name "$modname" --argjson enabled $status '.mods[.mods | length] |= . + {"name": $name, "enabled": $enabled}' )
+      print_success "  done"
+    }
+
+    function checkDownload(){
+      local filename=$1
+      local sha1=$2
+
+      if ! [[ -z ${sha1}} ]]; then
+        print_step "  checking for mod file $filename with SHA1 Hash: $sha1"
+      else
+        print_step "  checking for mod file $filename"
+      fi
+      if ! [[ -f "$modDir/$filename" ]]; then
+        print_failure "  mod file not found!"
+        return 1
+      elif ! [[ -z ${sha1}} ]]; then # only check sha1 hash if a hash was passed in
+        if ! [[ $(sha1sum "$modDir/$filename") =~ $sha1 ]]; then
+          print_failure "  mod file found, but hash does not match!"
+          print_step "  deleting corrupted mod file"
+          rm -fv "$modDir/$filename"
+          return 1
+        else
+          print_success "  mod file found and hash matches"
+          return 0
+        fi
+      else
+        print_success "  mod file found"
+        return 0
+      fi
+    }
+
+    function cleanupDownloads(){
+      for fileName in $modDir/*.zip; do
+        local filefound=false
+        local bname=$(basename "$fileName")
+        print_step "looking for $bname in list of downloaded files"
+
+        for ((i = 0; i < ${#downloadFileNames[@]}; i++)); do
+          if [[ $bname == ${downloadFileNames[i]} ]]; then
+            print_step "  found. leaving in place."
+            filefound=true
+            break
+          fi
+        done
+
+        if ! $filefound; then
+          print_step "  not found. deleting!"
+          rm -fv "$modDir/$bname"
+        fi
+
+      done
+    }
+
+    function downloadMod(){
+
+      local filename=$1
+      local url=$2
+      local sha1=$3
+
+      print_status "  starting pre-download file check"
+      if checkDownload "$filename" $sha1; then
+        print_success "  $filename already downloaded!"
+        downloadFileNames+=("$filename")
+        return 0
+      fi
+      
+      print_step "  Downloading..."
+      HTTP_STATUS=$(curl --silent -L -w "%{http_code}" -o "$modDir/$filename" "$url")
+
+      if [[ $HTTP_STATUS != 200 ]]; then
+        print_failure "  Download failed: Code $HTTP_STATUS."
+        rm -fv "$modDir/$filename"
+        allDLSuccess=false
+        return 1
+      fi
+
+      print_status "  starting post-download file check"
+      if ! checkDownload "$filename" $sha1; then
+        allDLSuccess=false
+        return 1
+      fi
+
+      print_success "  Download complete."
+      downloadFileNames+=("$filename")
+
+    }
+
+
+    function downloadofficial() {
+        local modname=$1
+
+        if [[ -z ${USERNAME:-} ]]; then
+          USERNAME="$(cat /account/username)"
+        fi
+
+        if [[ -z ${TOKEN:-} ]]; then
+          TOKEN="$(cat /account/token)"
+        fi
+
+        if [[ -z ${USERNAME:-} ]]; then
+          echo "You need to provide your Factorio username to update mods."
+        fi
+
+        if [[ -z ${TOKEN:-} ]]; then
+          echo "You need to provide your Factorio token to update mods."
+        fi
+        local MOD_INFO_URL="$MOD_BASE_URL/api/mods/$modname"
+        local MOD_INFO_JSON=$(curl --silent "$MOD_INFO_URL")
+    #    echo "$MOD_INFO_URL $MOD_INFO_JSON"
+        if ! echo "$MOD_INFO_JSON" | jq -e .name >/dev/null; then
+          print_success "  $modname not on $MOD_BASE_URL, skipped."
+          return 0
+        fi
+        local MOD_INFO=$(echo "$MOD_INFO_JSON" | jq -j --arg version "$VERSION" ".releases|reverse|map(select(.info_json.factorio_version as \$mod_version | \$version | startswith(\$mod_version)))[0]|.file_name, \";\", .download_url, \";\", .sha1, \";\", .version")
+        #print_step "$MOD_INFO"
+        local MOD_FILENAME=$(echo "$MOD_INFO" | cut -f1 -d";")
+        local MOD_URL=$(echo "$MOD_INFO" | cut -f2 -d";")
+        local MOD_SHA1=$(echo "$MOD_INFO" | cut -f3 -d";")
+        local MOD_VERSION=$(echo "$MOD_INFO" | cut -f4 -d";")
+        if [[ $MOD_FILENAME == null ]]; then
+          print_failure "  $modname compatible with server version $VERSION"
+          allDLSuccess=false
+          return 1
+        fi
+
+        FULL_URL="$MOD_BASE_URL$MOD_URL?username=$USERNAME&token=$TOKEN"
+        #print_step "$FULL_URL"
+        print_step "  updating mod $modname"
+        downloadMod "$MOD_FILENAME" $FULL_URL $MOD_SHA1
+        setModStatus "$modname" ${modStatus[$modname]}
+
+    }
+
+    mkdir -p $modDir
+
+    print_step "Setting status of Core Mods"
+    for modname in ${CORE_MODS[*]}; do
+      setModStatus "$modname" ${modStatus[$modname]}
+    done
+
+    print_step "Updating Unofficial Mods"
+    for key in "${!unofficialMods[@]}"; do
+      downloadUnofficial "$key" "${unofficialMods[$key]}"
+    done
+
+    if [ -f "/account/username" ]; then
+      if [ -f "/account/token" ]; then
+        echo "Server is running version $VERSION"
+        echo "Updating Official Mods"
+        for officialMod in ${officialMods[*]}; do
+          downloadofficial "$officialMod" "$USERNAME" "$TOKEN"
+        done
+      fi
+    fi
+
+    print_step "Updating $modFile"
+    writeModList
+
+    if $allDLSuccess ; then
+      print_step "Cleaning up old downloads"
+      cleanupDownloads
+    else
+      print_success "Skipping file cleanup due to imperfect download process..."
+    fi

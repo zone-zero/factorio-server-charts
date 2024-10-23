@@ -72,6 +72,9 @@ white_list: [ ] # put the people you want to play with you based on factorio nam
 # - "john_doe"
 # - "jane_doe"
 
+space_age:
+  enabled: true
+  
 server_settings:
   name: Factorio-2022-01-kubernetes
   tags:
@@ -133,20 +136,36 @@ kubectl cp ./my_existing_savegame.zip <namespace>/<pod_name>:/factorio/save-impo
 Restart the pod again to import your save file.
 
 
-## Installing mods
 
-To Install mods, change `mods.enabled` to `true`, add any offical mods by their URL name under the `mods.portal`
-section, and any unofficial mods in the `mods.unofficial`section.
+## Disabling Space Age
+Space Age is enabled by default. to disable it, mark all of the space age "core" mods as disabled
+
+### Installing Mods
+Add any offical mods by their URL name under the `mods.portal` section, and any unofficial mods in the `mods.unofficial`section. 
+
+### Enabling/Disabling Mods
+Mods are enabled by default. you can disable mods by setting `enabled` to `false`. Disabled mods will still be downloaded and kept up to date, but the server will not use them.
 
 ```yaml
 mods:
-  enabled: true
+  # core mods are included with factorio
+  core:
+    # SPACE AGE EXPANSION. Enabled by default. disable these as a unit to turn the space age expansion off off
+    - name: quality
+      enabled: false
+    - name: space-age
+      enabled: false
+    - name: elevated-rails
+      enabled: false
   # in order to use the mods portal you will need to specify the username and token in the server_settings.
   # name is determined by the url, it will be the last part of the url, not the title of the mod.
   portal:
-    - Krastorio2
-    - StorageTank2_Updated
-    - early-robots
+    - name: Krastorio2
+      enabled: true
+    - name: StorageTank2_Updated
+      enabled: true
+    - name: early-robots
+      enabled: true
   # unofficial section is meant to just allow you to download and place folders into the mods folder.
   # we will not check version compatibility automatically with these downloads.
   # you can encounter an error if the file names dont match what the mod is expecting for example
@@ -155,6 +174,7 @@ mods:
   unofficial:
     - url: "https://github.com/Suprcheese/Squeak-Through/archive/refs/tags/1.8.2.zip"
       name: "Squeak Through_1.8.2.zip"
+      enabled: true
 ```
 If the Factorio server doesn't start, check that the logs don't have an error with the mods. They are pretty verbose.
 
@@ -241,7 +261,7 @@ If you do run into any issues with mods, I will try to work with you on finding 
 
 | Name                                                           | Description                                                                                                                              | Value                            |
 |----------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------|
-| `mods.enabled`                                                 | Enable mods                                                                                                                              | `false`                          |
+| `mods.core`                                                    | Override enable/disable of 'core' mods. Use to disable Space Age expansion if desired                                                    | `[]`                             |
 | `mods.portal`                                                  | List of official mods to be downloaded from Factorio Mod Portal                                                                          | `[]`                             |
 | `mods.unofficial`                                              | List of unofficial mods name and url to download into the mods folder                                                                    | `[]`                             |
 | `factorioServer.save_name`                                     | Factorio save name                                                                                                                       | `replaceMe`                      |
@@ -274,6 +294,7 @@ If you do run into any issues with mods, I will try to work with you on finding 
 | `server_settings.autosave_slots`                               | Server autosave slots, it is cycled through when the server autosaves                                                                    | `5`                              |
 | `server_settings.afk_autokick_interval`                        | How many minutes must pass before someone is kicked when doing nothing, 0 for never                                                      | `0`                              |
 | `server_settings.auto_pause`                                   | Whether the server should be paused when no players are present                                                                          | `true`                           |
+| `server_settings.auto_pause_when_players_connect`              | Whether the server should be paused when someone is connecting to the server                                                             | `false`                          |
 | `server_settings.only_admins_can_pause_the_game`               | Specifies if anyone can pause or only admins                                                                                             | `true`                           |
 | `server_settings.autosave_only_on_server`                      | Whether autosaves should be performed only on the server or also on all connected clients. Default is true                               | `true`                           |
 | `server_settings.non_blocking_saving`                          | Highly experimental feature, enable only at your own risk                                                                                | `false`                          |
@@ -283,12 +304,10 @@ If you do run into any issues with mods, I will try to work with you on finding 
 | `server_settings.maximum_segment_size_peer_count`              | Minimum network messages segment count                                                                                                   | `10`                             |
 | `rcon.external`                                                | Enable RCON external access (deploy RCON service)                                                                                        | `true`                           |
 | `rcon.type`                                                    | RCON service type                                                                                                                        | `LoadBalancer`                   |
-| `rcon.serviceAnnotations`                                      | RCON service annotations                                                                                                                        | `{}`                   |
+| `rcon.serviceAnnotations`                                      | RCON service annotations                                                                                                                 | `{}`                   |
 | `rcon.passwordSecret`                                          | Existing secret containing a `password` data field                                                                                       | `""`                             |
 | `rcon.password`                                                | Password for RCON, ignored if `rcon.passwordSecret` is set                                                                               | `CHANGEMECHANGEME`               |
 | `rcon.port`                                                    | RCON service external port                                                                                                               | `30100`                          |
-| `map_gen_settings.terrain_segmentation`                        | The inverse of water scale in the map generator GUI                                                                                      | `1`                              |
-| `map_gen_settings.water`                                       | The equivalent to water coverage in the map generator GUI                                                                                | `1`                              |
 | `map_gen_settings.width`                                       | Map width in tiles; 0 means infinite                                                                                                     | `0`                              |
 | `map_gen_settings.height`                                      | Map height in tiles; 0 means infinite                                                                                                    | `0`                              |
 | `map_gen_settings.starting_area`                               | Multiplier for biter free zone radius                                                                                                    | `1`                              |
@@ -301,13 +320,11 @@ If you do run into any issues with mods, I will try to work with you on finding 
 | `map_gen_settings.property_expression_names`                   | Overrides for property value generators (map type)                                                                                       |                                  |
 | `map_gen_settings.starting_points`                             | List of starting points for the map                                                                                                      |                                  |
 | `map_gen_settings.seed`                                        | Map RNG Seed                                                                                                                             | `nil`                            |
-| `map_settings.difficulty_settings.recipe_difficulty`           | Enable expensive crafting recipe                                                                                                         | `0`                              |
-| `map_settings.difficulty_settings.technology_difficulty`       | Enable expensive research                                                                                                                | `0`                              |
 | `map_settings.difficulty_settings.technology_price_multiplier` | Research cost multiplier                                                                                                                 | `1`                              |
-| `map_settings.difficulty_settings.research_queue_setting`      | Possibile values: `after-victory`, `always`, `never`                                                                                     | `after-victory`                  |
 | `map_settings.pollution.enabled`                               | Enable pollution. Check values.yaml to know what pollution values you can override                                                       |                                  |
 | `map_settings.enemy_evolution.enabled`                         | Enable enemy evolution. Check values.yaml to know what enemy evolution values you can override                                           |                                  |
 | `map_settings.enemy_expansion.enabled`                         | Enable enemy expansion. Check values.yaml to know what enemy expansion values you can override                                           |                                  |
+| `map_settings.asteroids.spawning_rate`                         | Asteroid spawn rate.  Check values.yaml to know what asteroid values you can override                                                    | `1`                              |
 | `map_settings.unit_group`                                      | Override default unit group values. Check values.yaml to know what values you can override                                               |                                  |
 | `map_settings.steering`                                        | Override default steering values. Check values.yaml to know what values you can override                                                 |                                  |
 | `map_settings.path_finder`                                     | Override default pathfinder values. Check values.yaml to know what values you can override                                               |                                  |

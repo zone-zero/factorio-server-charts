@@ -122,24 +122,37 @@ persistence:
 
 #### Factorio application configuration ####
 ## @section Factorio Parameters
-## @param mods.enabled Enable mods
+## @param mods.core List of built in mods to enable or disable. Disable these if you want to turn off the Space Age Expansion
 ## @param mods.portal List of official mods to be downloaded from Factorio Mod Portal
 ## @param mods.unofficial List of unofficial mods name and url to download into the mods folder
 mods:
-  enabled: false
+  # core mods are included with factorio.
+  core: []
+  # SPACE AGE EXPANSION. Enabled by default. disable these as a unit to turn the space age expansion off off
+#     - name: space-age
+#       enabled: false
+#     - name: elevated-rails
+#       enabled: false
+#     - name: quality
+#       enabled: false
 # in order to use the mods portal you will need to specify the username and token in the server_settings.
   portal: []
-#     - Krastorio2
-#     - StorageTank2_Updated
-#     - early-robots
+#     - name: Krastorio2
+#       enabled: true
+#     - name: StorageTank2_Updated
+#       enabled: true
+#     - name: early-robots
+#       enabled: true
+
 # unofficial section is meant to just allow you to download and place folders into the mods folder.
 # we will not check version compatibility automatically with these downloads.
 # you can encounter an error if the file names dont match what the mod is expecting for example
 # Error Util.cpp:83: Failed to load mod "Squeak-Through": Filename of mod
 # /factorio/mods/Squeak-Through.zip doesn't match the expected Squeak Through_1.8.2.zip (case sensitive!)
-  unofficial: []
-#     - url: "https://github.com/Suprcheese/Squeak-Through/archive/refs/tags/1.8.2.zip"
-#       name: "Squeak Through_1.8.2.zip"
+  unofficial:
+#   - url: "https://github.com/Suprcheese/Squeak-Through/archive/refs/tags/1.8.2.zip"
+#      name: "Squeak Through_1.8.2.zip"
+#      enabled: true
 
 ## @param factorioServer.save_name Factorio save name
 ## @param factorioServer.generate_new_save Generate a new save if `save_name` is not found
@@ -214,6 +227,7 @@ serverPassword:
 ## @param server_settings.autosave_slots Server autosave slots, it is cycled through when the server autosaves
 ## @param server_settings.afk_autokick_interval How many minutes must pass before someone is kicked when doing nothing, 0 for never
 ## @param server_settings.auto_pause Whether the server should be paused when no players are present
+## @param server_settings. auto_pause_when_players_connect Whether the server should be paused when someone is connecting to the server
 ## @param server_settings.only_admins_can_pause_the_game Specifies if anyone can pause or only admins
 ## @param server_settings.autosave_only_on_server Whether autosaves should be performed only on the server or also on all connected clients. Default is true
 ## @param server_settings.non_blocking_saving Highly experimental feature, enable only at your own risk
@@ -258,6 +272,8 @@ server_settings:
   afk_autokick_interval: 0
   # Whether should the server be paused when no players are present.
   auto_pause: true
+  # Whether should the server be paused when someone is connecting to the server
+  auto_pause_when_players_connect: false
   # specifies if anyone can pause or only admins
   only_admins_can_pause_the_game: true
   # Whether autosaves should be saved only on server or also on all connected clients. Default is true.
@@ -298,8 +314,8 @@ rcon:
   # rcon port
   port: 30100
 
-## @param map_gen_settings.terrain_segmentation The inverse of water scale in the map generator GUI
-## @param map_gen_settings.water The equivalent to water coverage in the map generator GUI
+
+
 ## @param map_gen_settings.width Map width in tiles; 0 means infinite
 ## @param map_gen_settings.height Map height in tiles; 0 means infinite
 ## @param map_gen_settings.starting_area Multiplier for biter free zone radius
@@ -315,92 +331,90 @@ rcon:
 ## @extra map_gen_settings.starting_points [array] List of starting points for the map
 ## @param map_gen_settings.seed Map RNG Seed
 map_gen_settings:
-  # The inverse of water scale in the map generator GUI.
-  terrain_segmentation: 1
-  #  The equivalent to water coverage in the map generator GUI. Higher coverage means
-  #  more water in larger oceans.
-  #  Water level = 10 * log2(this value)
-  water: 1
   # Width and height of map, in tiles; 0 means infinite
   width: 0
-  # Width and height of map, in tiles; 0 means infinite
   height: 0
-  # Multiplier for biter free zone radius
+  # Multiplier for 'biter free zone radius'
   starting_area: 1
   peaceful_mode: false
   autoplace_controls: {}
-#    coal:
-#      frequency: 1
-#      size: 1
-#      richness: 1
-#    stone:
-#      frequency: 1
-#      size: 1
-#      richness: 1
-#    copper-ore:
-#      frequency: 1
-#      size: 1
-#      richness: 1
-#    iron-ore:
-#      frequency: 1
-#      size: 1
-#      richness: 1
-#    uranium-ore:
-#      frequency: 1
-#      size: 1
-#      richness: 1
-#    crude-oil:
-#      frequency: 1
-#      size: 1
-#      richness: 1
-#    trees:
-#      frequency: 1
-#      size: 1
-#      richness: 1
-#    enemy-base:
-#      frequency: 1
-#      size: 1
-#      richness: 1
+    # coal:
+    #   frequency: 1
+    #   size: 1
+    #   richness: 1
+    # stone:
+    #   frequency: 1
+    #   size: 1
+    #   richness: 1
+    # copper-ore:
+    #   frequency: 1
+    #   size: 1
+    #   richness: 1
+    # iron-ore:
+    #   frequency: 1
+    #   size: 1
+    #   richness: 1
+    # uranium-ore:
+    #   frequency: 1
+    #   size: 1
+    #   richness: 1
+    # crude-oil:
+    #   frequency: 1
+    #   size: 1
+    #   richness: 1
+    # water:
+    #   frequency: 1
+    #   size: 1
+    # trees:
+    #   frequency: 1
+    #   size: 1
+    # enemy-base:
+    #   frequency: 1
+    #   size: 1
   cliff_settings:
     # Name of the cliff prototype
     name: cliff
     # Elevation of first row of cliffs
     cliff_elevation_0: 10
     # Elevation difference between successive rows of cliffs.
-    # This is inversely proportional to frequency in the map generation GUI. Specifically, when set from the GUI the value is 40 / frequency.
+    # This is inversely proportional to 'frequency' in the map generation GUI.
+    # Specifically, when set from the GUI the value is 40 / frequency.
     cliff_elevation_interval: 40
-    # Called cliff continuity in the map generator GUI. 0 will result in no cliffs, 10 will make all cliff rows completely solid
+    # Called 'cliff continuity' in the map generator GUI. 0 will
+    # result in no cliffs, 10 will make all cliff rows completely solid
     richness: 1
+
   # Overrides for property value generators (map type)
-  # Leave elevation blank to get normal terrain.
-  # Use ''elevation'': ''0_16-elevation'' to reproduce terrain from 0.16.
-  # Use ''elevation'': ''0_17-island'' to get an island.
+  # Leave 'elevation' blank to get 'normal' terrain.
+  # Use 'elevation': 'elevation_island' to get an island.
   # Moisture and terrain type are also controlled via this.
-  # "control-setting:moisture:frequency:multiplier is the inverse of the moisture scale in the map generator GUI."
-  # "control-setting:moisture:bias is the moisture bias in the map generator GUI."
-  # "control-setting:aux:frequency:multiplier is the inverse of the terrain type scale in the map generator GUI."
-  # "control-setting:aux:bias is the teraain type bias in the map generator GUI."
+  # 'control:moisture:frequency' is the inverse of the 'moisture scale' in the map generator GUI.
+  # 'control:moisture:bias' is the 'moisture bias' in the map generator GUI.
+  # 'control:aux:frequency' is the inverse of the 'terrain type scale' in the map generator GUI.
+  # 'control:aux:bias' is the 'terrain type bias' in the map generator GUI.
   property_expression_names:
-    control-setting:moisture:frequency:multiplier: '1'
-    control-setting:moisture:bias: '0'
-    control-setting:aux:frequency:multiplier: '1'
-    control-setting:aux:bias: '0'
+    control:moisture:frequency: '1'
+    control:moisture:bias: '0'
+    control:aux:frequency: '1'
+    control:aux:bias: '0'
   starting_points:
   - "x": 0
     "y": 0
   # Use null for a random seed, number for a specific seed.
   seed: null
 
-## @param map_settings.difficulty_settings.recipe_difficulty Enable expensive crafting recipe
-## @param map_settings.difficulty_settings.technology_difficulty Enable expensive research
+
+
 ## @param map_settings.difficulty_settings.technology_price_multiplier Research cost multiplier
-## @param map_settings.difficulty_settings.research_queue_setting Possibile values: `after-victory`, `always`, `never`
+## @param map_settings.difficulty_settings.spoil_time_modifier Spoil time modifier
 ## @skip map_settings.pollution
 ## @extra map_settings.pollution.enabled Enable pollution. Check values.yaml to know what pollution values you can override
 ## @skip map_settings.enemy_evolution
 ## @extra map_settings.enemy_evolution.enabled Enable enemy evolution. Check values.yaml to know what enemy evolution values you can override
 ## @skip map_settings.enemy_expansion
 ## @extra map_settings.enemy_expansion.enabled Enable enemy expansion. Check values.yaml to know what enemy expansion values you can override
+## @skip map_settings.asteroids
+## @extra map_settings.asteroids.spawning_rate Asteroid spawn rate.  Check values.yaml to know what asteroid values you can override
 ## @skip map_settings.unit_group
 ## @extra map_settings.unit_group [object] Override default unit group values. Check values.yaml to know what values you can override
 ## @skip map_settings.steering
@@ -410,10 +424,8 @@ map_gen_settings:
 ## @param map_settings.max_failed_behavior_count If a behavior fails this many times, the enemy (or enemy group) is destroyed. This solves biters stuck within their own base.
 map_settings:
   difficulty_settings:
-    recipe_difficulty: 0
-    technology_difficulty: 0
     technology_price_multiplier: 1
-    research_queue_setting: after-victory
+    spoil_time_modifier: 1
   pollution:
     enabled: true
     # these are values for 60 ticks (1 simulated second)
@@ -436,7 +448,6 @@ map_settings:
     pollution_factor: 0.0000009
   enemy_expansion:
     enabled: true
-    min_base_spacing: 3
     max_expansion_distance: 7
     friendly_base_influence_radius: 2
     enemy_building_influence_radius: 2
@@ -477,7 +488,7 @@ map_settings:
   path_finder:
     fwd2bwd_ratio: 5
     goal_pressure_ratio: 2
-    max_steps_worked_per_tick: 100
+    max_steps_worked_per_tick: 1000
     max_work_done_per_tick: 8000
     use_path_cache: true
     short_cache_size: 5
@@ -504,7 +515,7 @@ map_settings:
     short_request_max_steps: 1000
     short_request_ratio: 0.5
     min_steps_to_check_path_find_termination: 2000
-    start_to_goal_cost_multiplier_to_terminate_path_find: 500
+    start_to_goal_cost_multiplier_to_terminate_path_find: 2000.0
     overload_levels:
     - 0
     - 100
@@ -514,6 +525,9 @@ map_settings:
     - 3
     - 4
     negative_path_cache_delay_interval: 20
+  asteroids:
+    spawning_rate: 1
+    max_ray_portals_expanded_per_tick: 100
   max_failed_behavior_count: 3
 
 ## @param admin_list Admin list
